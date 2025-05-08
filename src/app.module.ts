@@ -5,9 +5,12 @@ import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './users/entities/user.entity';
+import { ConfigModule } from '@nestjs/config';
+import { FileEntity } from './files/entities/file.entity';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
