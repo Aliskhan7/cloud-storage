@@ -1,44 +1,70 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  Get,
+  UseGuards,
+  Query,
   Delete,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { CreateFileDto } from './dto/create-file.dto';
-import { UpdateFileDto } from './dto/update-file.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { fileStorage } from './storage';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { UserId } from '../decorators/user-id.decorator';
+import { FileType } from './entities/file.entity';
 
 @Controller('files')
-@ApiTags('users')
+@ApiTags('files')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Post()
-  create(@Body() createFileDto: CreateFileDto) {
-    return this.filesService.create(createFileDto);
-  }
-
   @Get()
-  findAll() {
-    return this.filesService.findAll();
+  findAll(@UserId() userId: number, @Query('type') fileType: FileType) {
+    return this.filesService.findAll(userId, fileType);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.filesService.findOne(+id);
+  @Post()
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: fileStorage,
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  create(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 })],
+      }),
+    )
+    file: Express.Multer.File,
+    @UserId() userId: number,
+  ) {
+    return this.filesService.create(file, userId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFileDto: UpdateFileDto) {
-    return this.filesService.update(+id, updateFileDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.filesService.remove(+id);
+  @Delete()
+  remove(@UserId() userId: number, @Query('ids') ids: string) {
+    // files?ids=1,2,7,8
+    return this.filesService.remove(userId, ids);
   }
 }
