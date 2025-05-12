@@ -16,9 +16,9 @@ import { CreateFileDto } from './dto/create-file.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { fileStorage } from './storage';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { UserId } from '../decorators/user-id.decorator';
 import { FileType } from './entities/file.entity';
-import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 
 @Controller('files')
 @ApiTags('files')
